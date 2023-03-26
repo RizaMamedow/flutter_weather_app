@@ -1,12 +1,9 @@
 import 'dart:convert';
-import 'dart:ui';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:weather_app/configs/constants.dart' as constants;
-
 
 class Location {
   double? latitude;
@@ -43,7 +40,7 @@ class NetworkData {
   }
 }
 
-class WeatherModel {
+class WeatherApiModel {
   Future<dynamic> getCurrentLocationWeather() async {
     Location location = Location();
     await location.getCurrentLocation();
@@ -56,15 +53,72 @@ class WeatherModel {
   Future<dynamic> getWeatherByCityName(String cityName) async {
     NetworkData networkHelper = NetworkData('${constants.weatherApiUrl}?q=$cityName&appid=${constants.apiKey}&units=metric');
     var weatherData = await networkHelper.getData();
-    return weatherData;
+    if (cityName.isEmpty) {
+      return Exception("City with name not found");
+    } else {
+      return weatherData;
+    }
   }
 }
 
+class WeatherData {
+  final int? temperature;
+  final String? condition;
+  final String? description;
+  final int? humidity;
+  final String? windSpeed;
+  final String? country;
+  final String? city;
+  final String? iconCode;
+  final DateTime? sunrise;
+  final DateTime? sunset;
 
-// Other And Decoration Methods
+  WeatherData({
+    required this.temperature,
+    required this.condition,
+    required this.description,
+    required this.humidity,
+    required this.windSpeed,
+    required this.country,
+    required this.city,
+    required this.iconCode,
+    required this.sunrise,
+    required this.sunset,
+  });
 
-extension StringExtension on String {
-  String capitalize() {
-    return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
+  factory WeatherData.fromJson(json) {
+    return WeatherData(
+      iconCode: json['weather'][0]['icon'],
+      description: json['weather'][0]['description'],
+      country: json['sys']['country'],
+      temperature: json['main']['temp'].toInt(),
+      city: json['name'],
+      condition: json['weather'][0]['main'],
+      humidity: json['main']['humidity'],
+      windSpeed: json['wind']['speed'].toString(),
+      sunrise: DateTime.fromMillisecondsSinceEpoch(json['sys']['sunrise'] * 1000).toUtc(),
+      sunset: DateTime.fromMillisecondsSinceEpoch(json['sys']['sunset'] * 1000).toUtc(),
+    );
+  }
+  IconData getIcon() {
+    switch(iconCode) {
+      case "01d": { return FontAwesomeIcons.sun; }
+      case "02d": { return FontAwesomeIcons.cloudSun; }
+      case "09d": { return FontAwesomeIcons.cloudShowersHeavy; }
+      case "10d": { return FontAwesomeIcons.cloudShowersWater; }
+      case "11d": { return FontAwesomeIcons.cloudBolt; }
+      case "13d": { return FontAwesomeIcons.snowflake; }
+      case "50d": { return FontAwesomeIcons.smog; }
+
+      default: { return Icons.cloud; }
+    }
+  }
+
+  Color getIconColor() {
+    switch(iconCode) {
+      case "01d": { return Colors.amberAccent; }
+      default: { return Colors.grey.shade700; }
+    }
   }
 }
+
